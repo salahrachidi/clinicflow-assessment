@@ -1,0 +1,256 @@
+select {
+  appearance: none;
+  padding-right: 3rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23173b3f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1rem;
+}
+
+.success {
+  margin: 0 0 1rem;
+  padding: .9rem 1rem;
+  border: 1px solid #b8dfd0;
+  border-radius: 10px;
+  background: #e8f7f0;
+  color: #11604f;
+  font-weight: 700;
+}
+
+.appointment-filters {
+  display: flex;
+  gap: .75rem;
+  width: min(100%, 520px);
+}
+
+@media (max-width: 600px) {
+  .appointment-filters { flex-direction: column; }
+}
+
+.patient-preview {
+  display: grid;
+  grid-template-columns: minmax(180px, .8fr) 2fr auto;
+  gap: 1.25rem;
+  align-items: center;
+  padding: 1rem 1.1rem;
+  border: 1px solid #d4e5df;
+  border-radius: 12px;
+  background: #f5faf7;
+}
+
+.patient-preview small,
+.patient-preview strong {
+  display: block;
+}
+
+.patient-preview small,
+.patient-preview dt {
+  color: #789091;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.patient-preview strong {
+  margin-top: .25rem;
+  color: #173b3f;
+  font-size: 1rem;
+}
+
+.patient-preview dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(100px, 1fr));
+  gap: .75rem 1.25rem;
+  margin: 0;
+}
+
+.patient-preview dl div {
+  min-width: 0;
+}
+
+.patient-preview dd {
+  margin-top: .2rem;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 900px) {
+  .patient-preview { grid-template-columns: 1fr; }
+  .patient-preview dl { grid-template-columns: repeat(2, 1fr); }
+}
+
+.detail-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.detail-form-actions {
+  display: flex;
+  padding-top: .5rem;
+}
+
+.patient-action-error {
+  margin-top: 1.25rem;
+}
+
+.archive-zone {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #ead8d5;
+}
+
+.archive-zone p {
+  margin: .35rem 0 0;
+  color: #718889;
+  font-size: .82rem;
+  line-height: 1.45;
+}
+
+.archive-confirm {
+  padding: 1rem;
+  border: 1px solid #e5c5c0;
+  border-radius: 10px;
+  background: #fff7f5;
+}
+
+.archive-confirm p {
+  margin: 0 0 .8rem;
+  color: #713a34;
+  font-weight: 700;
+}
+
+.archive-confirm div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .6rem;
+}
+
+.archive-blockers {
+  display: grid;
+  gap: .8rem;
+  padding: 1rem;
+  border: 1px solid #ead8b6;
+  border-radius: 10px;
+  background: #fffaf0;
+}
+
+.archive-blockers-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.archive-blockers ul {
+  display: grid;
+  gap: .55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.archive-blockers li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .75rem;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.archive-blockers li strong,
+.archive-blockers li span {
+  display: block;
+}
+
+.archive-blockers li span {
+  margin-top: .2rem;
+  color: #718889;
+  font-size: .78rem;
+}
+
+.archive-blockers li button {
+  flex: 0 0 auto;
+}
+
+button.danger,
+button.danger-outline {
+  width: fit-content;
+  background: #a33f35;
+  color: #fff;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(15, 39, 41, .52);
+  backdrop-filter: blur(3px);
+}
+
+.archive-modal {
+  display: grid;
+  gap: 1.25rem;
+  width: min(680px, 100%);
+  max-height: min(760px, calc(100vh - 2rem));
+  overflow: auto;
+  padding: 1.5rem;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 28px 80px rgba(14, 45, 44, .28);
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.modal-header h2 {
+  margin: .4rem 0 0;
+  font-family: Georgia, serif;
+  font-size: 1.8rem;
+  font-weight: 500;
+}
+
+button.modal-close {
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  padding: 0;
+  border-radius: 50%;
+  background: #edf3f0;
+  color: #355a5c;
+  font-size: 1.5rem;
+}
+
+.archive-ready {
+  display: grid;
+  gap: 1rem;
+}
+
+.archive-ready p {
+  margin: 0;
+  color: #536c6d;
+  line-height: 1.55;
+}
+
+.archive-ready div {
+  display: flex;
+  justify-content: flex-end;
+  gap: .65rem;
+}
+
+button.danger-outline {
+  border: 1px solid #c87870;
+  background: transparent;
+  color: #963c33;
+}

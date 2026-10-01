@@ -1,0 +1,156 @@
+openapi: 3.1.0
+info:
+  title: ClinicFlow API
+  version: 0.1.0
+servers:
+  - url: http://localhost:4000/api
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: clinicflow_token
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, requestId]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            requestId: { type: string }
+    PatientInput:
+      type: object
+      required: [fullName, cin, phone, birthDate]
+      properties:
+        fullName: { type: string, minLength: 2, maxLength: 120 }
+        cin: { type: string, minLength: 3, maxLength: 30 }
+        phone: { type: string, minLength: 6, maxLength: 30 }
+        birthDate: { type: string, format: date }
+        address: { type: [string, "null"], maxLength: 300 }
+    AppointmentInput:
+      type: object
+      required: [patientId, appointmentDate, reason]
+      properties:
+        patientId: { type: string, format: uuid }
+        appointmentDate: { type: string, format: date-time }
+        status: { type: string, enum: [pending, confirmed, cancelled], default: pending }
+        reason: { type: string, minLength: 2, maxLength: 300 }
+        notes: { type: [string, "null"], maxLength: 2000 }
+security:
+  - cookieAuth: []
+  - bearerAuth: []
+paths:
+  /auth/login:
+    post:
+      security: []
+      summary: Log in with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, minLength: 8 }
+      responses:
+        "200": { description: Authenticated }
+        "401": { description: Invalid credentials }
+  /auth/me:
+    get:
+      summary: Get the authenticated user
+      responses:
+        "200": { description: Current user }
+        "401": { description: Authentication required }
+  /patients:
+    get:
+      summary: Search and paginate active patients
+      parameters:
+        - { in: query, name: search, schema: { type: string } }
+        - { in: query, name: page, schema: { type: integer, minimum: 1, default: 1 } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        "200": { description: Paginated patients }
+    post:
+      summary: Create a patient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PatientInput" }
+      responses:
+        "201": { description: Patient created }
+        "409": { description: CIN already exists }
+  /patients/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+    get:
+      summary: Get one active patient
+      responses:
+        "200": { description: Patient found }
+        "404": { description: Patient not found }
+    put:
+      summary: Update a patient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PatientInput" }
+      responses:
+        "200": { description: Patient updated }
+    delete:
+      summary: Archive a patient (admin only)
+      responses:
+        "204": { description: Patient archived }
+        "403": { description: Admin role required }
+        "409": { description: Patient has future appointments }
+  /appointments:
+    get:
+      summary: Filter and paginate appointments
+      parameters:
+        - { in: query, name: date, schema: { type: string, format: date } }
+        - { in: query, name: status, schema: { type: string, enum: [pending, confirmed, cancelled] } }
+        - { in: query, name: patientId, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Paginated appointments }
+    post:
+      summary: Create an appointment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AppointmentInput" }
+      responses:
+        "201": { description: Appointment created }
+        "409": { description: Confirmed appointment conflicts with another confirmed appointment }
+  /appointments/{id}/status:
+    patch:
+      summary: Change appointment status
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [pending, confirmed, cancelled] }
+      responses:
+        "200": { description: Status updated and audited }
+        "409": { description: Confirmed appointment conflict }
+  /dashboard:
+    get:
+      summary: Get clinic dashboard statistics
+      responses:
+        "200": { description: Dashboard statistics }
