@@ -156,6 +156,23 @@ describe.sequential("ClinicFlow API integration", () => {
       confirmed: expect.any(Number)
     }));
   });
+
+  it("exposes filtered activity to admins and rejects staff", async () => {
+    const forbidden = await staff.get("/api/activity");
+    expect(forbidden.status).toBe(403);
+
+    const response = await admin.get("/api/activity?entityType=patient&action=patient.created&page=1&limit=100");
+    expect(response.status).toBe(200);
+    expect(response.body.data.some((item: { entityId: string }) => item.entityId === patientId)).toBe(true);
+    expect(response.body.data.every((item: { action: string }) => item.action === "patient.created")).toBe(true);
+    expect(response.body.summary).toEqual(expect.objectContaining({
+      last24Hours: expect.any(Number),
+      patientEvents: expect.any(Number),
+      appointmentEvents: expect.any(Number),
+      activeUsers: expect.any(Number)
+    }));
+    expect(response.body.pagination).toEqual(expect.objectContaining({ page: 1, limit: 100 }));
+  });
 });
 
 afterAll(async () => {

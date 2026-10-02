@@ -5,3 +5,4 @@ export async function api<T>(path:string,options:RequestInit={}):Promise<T>{cons
 export type User={userId?:string;id?:string;email:string;role:"admin"|"staff"};
 export type Patient={id:string;fullName:string;cin:string;phone:string;birthDate:string;address:string|null};
 export type Appointment={id:string;patientId:string;patientName:string;appointmentDate:string;status:"pending"|"confirmed"|"cancelled";reason:string;notes:string|null};
+export type ActivityItem={id:string;actorId:string;actorEmail:string;action:string;entityType:"patient"|"appointment";entityId:string;entityLabel:string|null;appointmentDate:string|null;changes:Record<string,unknown>;createdAt:string};

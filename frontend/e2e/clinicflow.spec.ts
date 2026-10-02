@@ -112,6 +112,12 @@ test("admin completes booking, conflict, dashboard, and archive workflows", asyn
   await expect(page).toHaveURL(/\/patients$/);
   await page.getByPlaceholder("Rechercher par nom ou CIN…").fill(testCin);
   await expect(page.getByText("Aucun patient trouvé.")).toBeVisible();
+
+  await page.getByRole("link", { name: "Activité" }).click();
+  await expect(page.getByRole("heading", { name: "Centre d’activité" })).toBeVisible();
+  await page.getByLabel("Filtrer par catégorie").selectOption("patient");
+  await page.getByLabel("Filtrer par action").selectOption("patient.archived");
+  await expect(page.locator(".activity-event").filter({ hasText: patientName }).filter({ hasText: "a archivé" })).toContainText("admin@clinicflow.local");
 });
 
 test("staff cannot see patient archival controls", async ({ page }) => {
@@ -127,6 +133,9 @@ test("staff cannot see patient archival controls", async ({ page }) => {
   await page.getByRole("button", { name: "Se déconnecter" }).click();
 
   await login(page, "staff1@clinicflow.local");
+  await expect(page.getByRole("link", { name: "Activité" })).toHaveCount(0);
+  await page.goto("/activity");
+  await expect(page).toHaveURL(/\/$/);
   await page.getByRole("link", { name: "Patients" }).click();
   await page.getByPlaceholder("Rechercher par nom ou CIN…").fill(staffTestCin);
   await page.getByRole("row").filter({ hasText: staffPatientName }).getByRole("link", { name: "Consulter" }).click();

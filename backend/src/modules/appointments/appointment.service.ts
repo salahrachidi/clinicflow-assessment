@@ -16,16 +16,26 @@ type AppointmentInput = {
 };
 
 export async function createAppointment(input: AppointmentInput, actorId: string) {
-  const patient = await pool.query("SELECT 1 FROM patients WHERE id = $1 AND deleted_at IS NULL", [input.patientId]);
-  if (!patient.rowCount) throw new ApiError(404, "PATIENT_NOT_FOUND", "Patient introuvable ou archivé.");
-
-  const result = await pool.query(`WITH inserted AS (
-      INSERT INTO appointments (patient_id, appointment_date, status, reason, notes, created_by)
-      VALUES ($1, $2, $3, $4, $5, $6) RETURNING *
-    ) SELECT ${columns} FROM inserted a
-      JOIN patients p ON p.id = a.patient_id JOIN users u ON u.id = a.created_by`,
-    [input.patientId, input.appointmentDate, input.status, input.reason, input.notes ?? null, actorId]);
-  return result.rows[0];
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const patient = await client.query("SELECT 1 FROM patients WHERE id = $1 AND deleted_at IS NULL", [input.patientId]);
+    if (!patient.rowCount) throw new ApiError(404, "PATIENT_NOT_FOUND", "Patient introuvable ou archivé.");
+    const result = await client.query(`WITH inserted AS (
+        INSERT INTO appointments (patient_id, appointment_date, status, reason, notes, created_by)
+        VALUES ($1, $2, $3, $4, $5, $6) RETURNING *
+      ) SELECT ${columns} FROM inserted a
+        JOIN patients p ON p.id = a.patient_id JOIN users u ON u.id = a.created_by`,
+      [input.patientId, input.appointmentDate, input.status, input.reason, input.notes ?? null, actorId]);
+    await client.query(`INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, changes)
+      VALUES ($1, 'appointment.created', 'appointment', $2, $3::jsonb)`,
+      [actorId, result.rows[0].id, JSON.stringify({ appointmentDate: input.appointmentDate, status: input.status })]);
+    await client.query("COMMIT");
+    return result.rows[0];
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally { client.release(); }
 }
 
 export async function listAppointments(filters: { date?: string; status?: AppointmentStatus; patientId?: string; page: number; limit: number }) {

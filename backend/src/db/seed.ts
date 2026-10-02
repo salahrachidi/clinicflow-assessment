@@ -30,6 +30,7 @@ try {
       full_name = EXCLUDED.full_name, cin = EXCLUDED.cin, phone = EXCLUDED.phone,
       birth_date = EXCLUDED.birth_date, address = EXCLUDED.address, deleted_at = NULL`, [...patient]);
   }
+  await client.query("DELETE FROM audit_logs WHERE id::text LIKE '40000000-%'");
   await client.query("DELETE FROM appointments WHERE id::text LIKE '30000000-%'");
   const statuses = ["confirmed", "pending", "cancelled", "confirmed", "pending", "cancelled", "confirmed", "pending", "cancelled", "pending"];
   for (let index = 0; index < 10; index += 1) {
@@ -41,6 +42,14 @@ try {
       [`30000000-0000-4000-8000-${number}`, patientId, Math.floor(index / 4), 9 + (index % 4), statuses[index],
         ["Consultation générale", "Contrôle", "Suivi traitement"][index % 3], index % 2 ? null : "Données de démonstration", users[index % users.length]![0]]);
   }
+  await client.query(`INSERT INTO audit_logs (id, actor_id, action, entity_type, entity_id, changes, created_at) VALUES
+    ('40000000-0000-4000-8000-000000000001', $1, 'patient.created', 'patient', $4, '{}'::jsonb, now() - interval '6 hours'),
+    ('40000000-0000-4000-8000-000000000002', $2, 'appointment.created', 'appointment', '30000000-0000-4000-8000-000000000001', '{}'::jsonb, now() - interval '5 hours'),
+    ('40000000-0000-4000-8000-000000000003', $1, 'appointment.status_changed', 'appointment', '30000000-0000-4000-8000-000000000001', '{"status":{"from":"pending","to":"confirmed"}}'::jsonb, now() - interval '4 hours'),
+    ('40000000-0000-4000-8000-000000000004', $3, 'patient.updated', 'patient', $5, '{"fields":["phone"]}'::jsonb, now() - interval '3 hours'),
+    ('40000000-0000-4000-8000-000000000005', $2, 'appointment.created', 'appointment', '30000000-0000-4000-8000-000000000005', '{}'::jsonb, now() - interval '2 hours'),
+    ('40000000-0000-4000-8000-000000000006', $1, 'appointment.rescheduled', 'appointment', '30000000-0000-4000-8000-000000000004', '{}'::jsonb, now() - interval '1 hour')`,
+    [users[0][0], users[1][0], users[2][0], patients[0][0], patients[1][0]]);
   await client.query("COMMIT");
   console.info("Seed complete. Demo password: ClinicFlow2026!");
 } catch (error) {

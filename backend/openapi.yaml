@@ -181,3 +181,14 @@ paths:
       summary: Get clinic dashboard statistics
       responses:
         "200": { description: Dashboard statistics }
+  /activity:
+    get:
+      summary: List the audit activity feed (admin only)
+      parameters:
+        - { in: query, name: entityType, schema: { type: string, enum: [patient, appointment] } }
+        - { in: query, name: action, schema: { type: string, enum: [patient.created, patient.updated, patient.archived, appointment.created, appointment.status_changed, appointment.rescheduled] } }
+        - { in: query, name: page, schema: { type: integer, minimum: 1, default: 1 } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        "200": { description: Paginated audit events and activity summary }
+        "403": { description: Admin role required }

@@ -11,9 +11,9 @@ router.get("/", validate("query", patientListSchema), asyncHandler(async (reques
   const { search, page, limit } = request.validatedQuery as { search: string; page: number; limit: number };
   response.json(await listPatients(search, page, limit));
 }));
-router.post("/", validate("body", createPatientSchema), asyncHandler(async (request, response) => response.status(201).json({ data: await createPatient(request.body) })));
+router.post("/", validate("body", createPatientSchema), asyncHandler(async (request, response) => response.status(201).json({ data: await createPatient(request.body, request.auth!.userId) })));
 router.get("/:id", validate("params", patientIdSchema), asyncHandler(async (request, response) => response.json({ data: await getPatient(String(request.params.id)) })));
-router.put("/:id", validate("params", patientIdSchema), validate("body", updatePatientSchema), asyncHandler(async (request, response) => response.json({ data: await updatePatient(String(request.params.id), request.body) })));
+router.put("/:id", validate("params", patientIdSchema), validate("body", updatePatientSchema), asyncHandler(async (request, response) => response.json({ data: await updatePatient(String(request.params.id), request.body, request.auth!.userId) })));
 router.delete("/:id", validate("params", patientIdSchema), requireRole("admin"), asyncHandler(async (request, response) => {
   await archivePatient(String(request.params.id), request.auth!.userId);
   response.status(204).send();

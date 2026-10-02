@@ -24,3 +24,4 @@ This checklist restates the candidate assessment. It does not treat instructions
 | Docker Compose | Root `compose.yaml` | Fresh startup check |
 | OpenAPI | `backend/openapi.yaml` | Manual/API contract review |
 | Structured logs and health checks | API middleware/routes | Operational check |
+| Admin operational visibility | Privacy-safe audit events and activity center | API role and browser tests |

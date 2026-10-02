@@ -24,20 +24,42 @@ export async function getPatient(id: string) {
   return result.rows[0];
 }
 
-export async function createPatient(input: Record<string, unknown>) {
-  const result = await pool.query(`INSERT INTO patients (full_name, cin, phone, birth_date, address)
-    VALUES ($1, $2, $3, $4, $5) RETURNING ${columns}`,
-    [input.fullName, input.cin, input.phone, input.birthDate, input.address ?? null]);
-  return result.rows[0];
+export async function createPatient(input: Record<string, unknown>, actorId: string) {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const result = await client.query(`INSERT INTO patients (full_name, cin, phone, birth_date, address)
+      VALUES ($1, $2, $3, $4, $5) RETURNING ${columns}`,
+      [input.fullName, input.cin, input.phone, input.birthDate, input.address ?? null]);
+    await client.query(`INSERT INTO audit_logs (actor_id, action, entity_type, entity_id)
+      VALUES ($1, 'patient.created', 'patient', $2)`, [actorId, result.rows[0].id]);
+    await client.query("COMMIT");
+    return result.rows[0];
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally { client.release(); }
 }
 
-export async function updatePatient(id: string, input: Record<string, unknown>) {
+export async function updatePatient(id: string, input: Record<string, unknown>, actorId: string) {
   const current = await getPatient(id);
-  const result = await pool.query(`UPDATE patients SET full_name = $2, cin = $3, phone = $4,
-    birth_date = $5, address = $6, updated_at = now() WHERE id = $1 AND deleted_at IS NULL RETURNING ${columns}`,
-    [id, input.fullName ?? current.fullName, input.cin ?? current.cin, input.phone ?? current.phone,
-      input.birthDate ?? current.birthDate, input.address === undefined ? current.address : input.address]);
-  return result.rows[0];
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const result = await client.query(`UPDATE patients SET full_name = $2, cin = $3, phone = $4,
+      birth_date = $5, address = $6, updated_at = now() WHERE id = $1 AND deleted_at IS NULL RETURNING ${columns}`,
+      [id, input.fullName ?? current.fullName, input.cin ?? current.cin, input.phone ?? current.phone,
+        input.birthDate ?? current.birthDate, input.address === undefined ? current.address : input.address]);
+    if (!result.rowCount) throw new ApiError(404, "PATIENT_NOT_FOUND", "Patient introuvable.");
+    await client.query(`INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, changes)
+      VALUES ($1, 'patient.updated', 'patient', $2, $3::jsonb)`,
+      [actorId, id, JSON.stringify({ fields: Object.keys(input) })]);
+    await client.query("COMMIT");
+    return result.rows[0];
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally { client.release(); }
 }
 
 export async function archivePatient(id: string, actorId: string) {

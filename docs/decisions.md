@@ -21,3 +21,5 @@ Patients are archived with `deleted_at`, rather than physically deleted. Their h
 ## Security
 
 The JWT is stored in an HttpOnly cookie. Production cookies use `Secure`; all state-changing requests require a matching CSRF header and cookie. Authorization is always enforced by the API. Logs exclude passwords, tokens, CIN values, notes, and request bodies.
+
+The admin activity feed reads the append-only audit log and never records patient contact details, identifiers, notes, or appointment reasons. Patient updates store only the names of changed fields; appointment events store operational status and scheduling metadata.

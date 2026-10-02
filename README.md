@@ -15,6 +15,7 @@ ClinicFlow is a PERN application for patient and appointment management in a sma
 - Appointment creation/filtering/status updates
 - PostgreSQL-enforced 30-minute confirmed-appointment rule
 - Conflict assistant with nearby valid slots and one-click rescheduling
+- Admin-only activity center with filters, pagination, and privacy-safe audit events
 - Dashboard statistics calculated in the `Africa/Casablanca` clinic timezone
 - Structured request logs, request IDs, liveness, and readiness endpoints
 - React/TypeScript frontend foundation
@@ -113,6 +114,7 @@ When confirmation detects a conflict, the interface explains which confirmed app
 - `PATCH /api/appointments/:id/status`
 - `GET /api/appointments/:id/alternatives?count=3`
 - `PATCH /api/appointments/:id/reschedule`
+- `GET /api/activity?entityType=&action=&page=&limit=` (admin only)
 - `GET /api/dashboard`
 - `GET /health/live`
 - `GET /health/ready`
