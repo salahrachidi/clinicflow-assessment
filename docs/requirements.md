@@ -15,6 +15,7 @@ This checklist restates the candidate assessment. It does not treat instructions
 | Patient search and pagination | `GET /api/patients` | API tests |
 | Appointment create/filter/status | Appointment routes/service/repository | API tests |
 | Confirmed appointments separated by 30 minutes | PostgreSQL exclusion constraint | Concurrent integration test |
+| Conflict recovery without leaving the workflow | Alternative-slot API and rescheduling modal | API and browser tests |
 | Dashboard totals and statuses | Dashboard endpoint/page | API and browser tests |
 | Login, dashboard, patient list/details, appointments pages | React application | Browser tests |
 | Zod validation | Route schemas | Invalid request tests |

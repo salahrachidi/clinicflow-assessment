@@ -14,6 +14,7 @@ ClinicFlow is a PERN application for patient and appointment management in a sma
 - Patient CRUD, prefix search, pagination, and admin-only archival
 - Appointment creation/filtering/status updates
 - PostgreSQL-enforced 30-minute confirmed-appointment rule
+- Conflict assistant with nearby valid slots and one-click rescheduling
 - Dashboard statistics calculated in the `Africa/Casablanca` clinic timezone
 - Structured request logs, request IDs, liveness, and readiness endpoints
 - React/TypeScript frontend foundation
@@ -83,7 +84,7 @@ npm run db:seed
 
 The integration suite uses the local PostgreSQL database and expects migrations and seed data to be present. It covers authentication, validation, role enforcement, patient archival, dashboard access, and the concurrent appointment constraint.
 
-The Playwright suite runs the primary admin workflow in Chromium, verifies the 30-minute conflict experience and archive modal, and confirms that staff cannot see archival controls. Run `npx playwright install chromium` once before the first local browser test.
+The Playwright suite runs the primary admin workflow in Chromium, verifies conflict detection and one-click rescheduling, exercises the archive modal, and confirms that staff cannot see archival controls. Run `npx playwright install chromium` once before the first local browser test.
 
 GitHub Actions repeats type checking, production builds, database integration tests, and the browser suite for each pull request and push to `main`.
 
@@ -94,6 +95,8 @@ The reviewer walkthrough and submission checklist are in [docs/submission.md](do
 Each confirmed appointment occupies the half-open interval `[appointmentDate, appointmentDate + 30 minutes)`. PostgreSQL rejects overlapping intervals for the same patient through a partial GiST exclusion constraint. Therefore appointments exactly 30 minutes apart are accepted, while appointments 29 minutes apart are rejected. Pending and cancelled appointments do not occupy an interval.
 
 An API availability check alone would have a race condition: two requests could both observe an available slot before either writes. The exclusion constraint serializes the actual integrity decision at the database boundary.
+
+When confirmation detects a conflict, the interface explains which confirmed appointment blocks the request and proposes the three nearest valid slots. Choosing one moves and confirms the appointment in a transaction. PostgreSQL checks the chosen slot again during the write, so a suggestion cannot bypass the scheduling guarantee if another user books it first.
 
 ## API overview
 
@@ -108,6 +111,8 @@ An API availability check alone would have a race condition: two requests could 
 - `POST /api/appointments`
 - `GET /api/appointments?date=&status=&patientId=&page=&limit=`
 - `PATCH /api/appointments/:id/status`
+- `GET /api/appointments/:id/alternatives?count=3`
+- `PATCH /api/appointments/:id/reschedule`
 - `GET /api/dashboard`
 - `GET /health/live`
 - `GET /health/ready`

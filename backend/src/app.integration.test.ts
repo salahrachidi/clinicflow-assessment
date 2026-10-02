@@ -9,7 +9,9 @@ const staff = request.agent(app);
 let adminCsrf = "";
 let staffCsrf = "";
 let patientId = "";
+let schedulingPatientId = "";
 const testCin = `TEST${Date.now()}`;
+const schedulingCin = `SLOT${Date.now()}`;
 
 async function login(agent: ReturnType<typeof request.agent>, email: string) {
   const response = await agent.post("/api/auth/login").send({ email, password });
@@ -78,6 +80,54 @@ describe.sequential("ClinicFlow API integration", () => {
     expect(response.body.error.code).toBe("CIN_ALREADY_EXISTS");
   });
 
+  it("explains a scheduling conflict and reschedules to a suggested slot", async () => {
+    const patient = await admin
+      .post("/api/patients")
+      .set("X-CSRF-Token", adminCsrf)
+      .send({
+        fullName: "Patient Suggestions",
+        cin: schedulingCin,
+        phone: "+212600000097",
+        birthDate: "1992-03-03"
+      });
+    expect(patient.status).toBe(201);
+    schedulingPatientId = patient.body.data.id;
+
+    const confirmedDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    confirmedDate.setUTCHours(10, 0, 0, 0);
+    const conflictingDate = new Date(confirmedDate.getTime() + 15 * 60 * 1000);
+    const confirmed = await admin
+      .post("/api/appointments")
+      .set("X-CSRF-Token", adminCsrf)
+      .send({ patientId: schedulingPatientId, appointmentDate: confirmedDate.toISOString(), status: "confirmed", reason: "Consultation initiale" });
+    const pending = await admin
+      .post("/api/appointments")
+      .set("X-CSRF-Token", adminCsrf)
+      .send({ patientId: schedulingPatientId, appointmentDate: conflictingDate.toISOString(), status: "pending", reason: "Consultation suivante" });
+    expect(confirmed.status).toBe(201);
+    expect(pending.status).toBe(201);
+
+    const rejected = await admin
+      .patch(`/api/appointments/${pending.body.data.id}/status`)
+      .set("X-CSRF-Token", adminCsrf)
+      .send({ status: "confirmed" });
+    expect(rejected.status).toBe(409);
+    expect(rejected.body.error.code).toBe("APPOINTMENT_CONFLICT");
+
+    const assistant = await admin.get(`/api/appointments/${pending.body.data.id}/alternatives?count=3`);
+    expect(assistant.status).toBe(200);
+    expect(assistant.body.data.conflict.id).toBe(confirmed.body.data.id);
+    expect(assistant.body.data.alternatives).toHaveLength(3);
+
+    const rescheduled = await admin
+      .patch(`/api/appointments/${pending.body.data.id}/reschedule`)
+      .set("X-CSRF-Token", adminCsrf)
+      .send({ appointmentDate: assistant.body.data.alternatives[0] });
+    expect(rescheduled.status).toBe(200);
+    expect(rescheduled.body.data.status).toBe("confirmed");
+    expect(rescheduled.body.data.appointmentDate).toBe(assistant.body.data.alternatives[0]);
+  });
+
   it("prevents staff from archiving a patient", async () => {
     const response = await staff
       .delete(`/api/patients/${patientId}`)
@@ -109,6 +159,13 @@ describe.sequential("ClinicFlow API integration", () => {
 });
 
 afterAll(async () => {
+  if (schedulingPatientId) {
+    await pool.query(`DELETE FROM audit_logs WHERE entity_type = 'appointment'
+      AND entity_id IN (SELECT id FROM appointments WHERE patient_id = $1)`, [schedulingPatientId]);
+    await pool.query("DELETE FROM appointments WHERE patient_id = $1", [schedulingPatientId]);
+    await pool.query("DELETE FROM audit_logs WHERE entity_type = 'patient' AND entity_id = $1", [schedulingPatientId]);
+    await pool.query("DELETE FROM patients WHERE id = $1", [schedulingPatientId]);
+  }
   if (patientId) {
     await pool.query("DELETE FROM audit_logs WHERE entity_type = 'patient' AND entity_id = $1", [patientId]);
     await pool.query("DELETE FROM patients WHERE id = $1", [patientId]);

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: ClinicFlow API
-  version: 0.1.0
+  version: 1.1.0
 servers:
   - url: http://localhost:4000/api
 components:
@@ -149,6 +149,33 @@ paths:
       responses:
         "200": { description: Status updated and audited }
         "409": { description: Confirmed appointment conflict }
+  /appointments/{id}/alternatives:
+    get:
+      summary: Suggest the nearest conflict-free appointment slots
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: count, schema: { type: integer, minimum: 1, maximum: 5, default: 3 } }
+      responses:
+        "200": { description: Appointment, conflicting appointment, and ordered alternative slots }
+        "404": { description: Appointment not found }
+  /appointments/{id}/reschedule:
+    patch:
+      summary: Move an appointment to a new slot and confirm it atomically
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [appointmentDate]
+              properties:
+                appointmentDate: { type: string, format: date-time }
+      responses:
+        "200": { description: Appointment rescheduled, confirmed, and audited }
+        "404": { description: Appointment not found }
+        "409": { description: Alternative slot is no longer available }
   /dashboard:
     get:
       summary: Get clinic dashboard statistics

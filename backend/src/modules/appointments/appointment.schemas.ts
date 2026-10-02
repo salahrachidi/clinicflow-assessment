@@ -9,7 +9,11 @@ export const createAppointmentSchema = z.object({
   notes: z.string().trim().max(2000).nullable().optional()
 });
 export const updateStatusSchema = z.object({ status: z.enum(["pending", "confirmed", "cancelled"]) });
+export const rescheduleAppointmentSchema = z.object({ appointmentDate: z.iso.datetime({ offset: true }) });
 const optionalQuery = <T extends z.ZodTypeAny>(schema: T) => z.preprocess((value) => value === "" ? undefined : value, schema.optional());
+export const appointmentAlternativesSchema = z.object({
+  count: z.coerce.number().int().min(1).max(5).default(3)
+});
 export const appointmentListSchema = z.object({
   date: optionalQuery(z.iso.date()),
   status: optionalQuery(z.enum(["pending", "confirmed", "cancelled"])),

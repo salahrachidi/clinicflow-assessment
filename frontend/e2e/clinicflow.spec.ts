@@ -88,10 +88,17 @@ test("admin completes booking, conflict, dashboard, and archive workflows", asyn
   await page.getByRole("button", { name: "Créer le rendez-vous" }).click();
   const conflictingAppointment = page.getByRole("row").filter({ hasText: "Conflit E2E" });
   await conflictingAppointment.getByRole("button", { name: "Confirmer" }).click();
-  await expect(page.getByRole("alert")).toContainText("fenêtre de 30 minutes");
+  const conflictDialog = page.getByRole("dialog", { name: "Choisir un créneau disponible" });
+  await expect(conflictDialog).toBeVisible();
+  await expect(conflictDialog).toContainText("Consultation E2E");
+  const alternatives = conflictDialog.getByRole("button", { name: /Choisir ce créneau/ });
+  await expect(alternatives).toHaveCount(3);
+  await alternatives.first().click();
+  await expect(conflictingAppointment.getByText("Confirmé", { exact: true })).toBeVisible();
+  await expect(page.getByRole("status")).toContainText("déplacé");
 
   await page.getByRole("link", { name: "Vue du jour" }).click();
-  await expect(confirmedCard).toHaveText(String(confirmedBefore + 1));
+  await expect(confirmedCard).toHaveText(String(confirmedBefore + 2));
 
   await page.getByRole("link", { name: "Patients" }).click();
   await page.getByPlaceholder("Rechercher par nom ou CIN…").fill(testCin);

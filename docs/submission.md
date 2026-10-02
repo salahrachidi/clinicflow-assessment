@@ -14,7 +14,7 @@
 2. Sign in as `admin@clinicflow.local` with `ClinicFlow2026!`.
 3. Show the dashboard totals and today’s schedule.
 4. Search for `DEMO-CIN-001`, open the record, and use **Prendre rendez-vous**.
-5. Create and confirm an appointment, then attempt to confirm another one less than 30 minutes later. Explain that PostgreSQL enforces the rule atomically, including concurrent requests.
+5. Create and confirm an appointment, then attempt to confirm another one less than 30 minutes later. Use the conflict assistant to choose a nearby valid slot and explain that PostgreSQL rechecks it atomically, including under concurrent requests.
 6. Return to the patient record and open the archive dialog. Cancel future appointments inside the dialog, then archive the patient.
 7. Sign in as staff and show that archive controls are absent and the API also rejects the operation.
 8. Point to the CI workflow, integration suite, Playwright workflow, health checks, OpenAPI contract, ERD, and audit log.
@@ -22,6 +22,7 @@
 ## Technical points to discuss
 
 - The exclusion constraint is the final authority for the 30-minute scheduling rule. An API-only availability check would have a race condition.
+- The conflict assistant turns a database rejection into a recoverable workflow: it identifies the blocker, ranks nearby valid slots, and reschedules with one click.
 - Patient deletion is a soft archive. Appointments and audit history remain intact.
 - JWTs are stored in HttpOnly cookies and state-changing cookie requests require a CSRF token.
 - Search, list, and appointment queries are indexed and paginated.

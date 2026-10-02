@@ -254,3 +254,57 @@ button.danger-outline {
   background: transparent;
   color: #963c33;
 }
+
+.slot-assistant {
+  width: min(720px, 100%);
+}
+
+.slot-conflict {
+  padding: 1rem;
+  border: 1px solid #ead8b6;
+  border-radius: 12px;
+  background: #fffaf0;
+  color: #684f28;
+}
+
+.slot-conflict p {
+  margin: .35rem 0 0;
+  color: #7b6847;
+  line-height: 1.5;
+}
+
+.slot-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .75rem;
+}
+
+.slot-options button {
+  display: grid;
+  gap: .35rem;
+  width: 100%;
+  padding: 1rem;
+  text-align: left;
+}
+
+.slot-options span {
+  color: #173b3f;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.slot-options small {
+  color: #587576;
+  font-weight: 700;
+}
+
+.slot-note {
+  margin: 0;
+  color: #718889;
+  font-size: .82rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 700px) {
+  .slot-options { grid-template-columns: 1fr; }
+}

@@ -67,6 +67,71 @@ export async function updateAppointmentStatus(id: string, status: AppointmentSta
   } finally { client.release(); }
 }
 
+export async function getAppointmentAlternatives(id: string, count: number) {
+  const target = await pool.query(`SELECT id, patient_id AS "patientId", appointment_date AS "appointmentDate"
+    FROM appointments WHERE id = $1`, [id]);
+  if (!target.rowCount) throw new ApiError(404, "APPOINTMENT_NOT_FOUND", "Rendez-vous introuvable.");
+
+  const appointment = target.rows[0] as { id: string; patientId: string; appointmentDate: Date };
+  const [conflict, alternatives] = await Promise.all([
+    pool.query(`SELECT id, appointment_date AS "appointmentDate", reason
+      FROM appointments
+      WHERE patient_id = $1 AND id <> $2 AND status = 'confirmed'
+        AND appointment_date < $3::timestamptz + interval '30 minutes'
+        AND appointment_date + interval '30 minutes' > $3::timestamptz
+      ORDER BY appointment_date LIMIT 1`, [appointment.patientId, id, appointment.appointmentDate]),
+    pool.query(`WITH candidates AS (
+        SELECT $3::timestamptz + offsets.value * interval '30 minutes' AS slot
+        FROM generate_series(-12, 12) AS offsets(value)
+        WHERE offsets.value <> 0
+      )
+      SELECT slot AS "appointmentDate"
+      FROM candidates
+      WHERE slot >= now()
+        AND NOT EXISTS (
+          SELECT 1 FROM appointments existing
+          WHERE existing.patient_id = $1 AND existing.id <> $2 AND existing.status = 'confirmed'
+            AND existing.appointment_date < slot + interval '30 minutes'
+            AND existing.appointment_date + interval '30 minutes' > slot
+        )
+      ORDER BY abs(extract(epoch FROM (slot - $3::timestamptz))), slot
+      LIMIT $4`, [appointment.patientId, id, appointment.appointmentDate, count])
+  ]);
+
+  return {
+    appointment,
+    conflict: conflict.rows[0] ?? null,
+    alternatives: alternatives.rows.map((row) => row.appointmentDate)
+  };
+}
+
+export async function rescheduleAppointment(id: string, appointmentDate: string, actorId: string) {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const existing = await client.query(`SELECT appointment_date AS "appointmentDate", status
+      FROM appointments WHERE id = $1 FOR UPDATE`, [id]);
+    if (!existing.rowCount) throw new ApiError(404, "APPOINTMENT_NOT_FOUND", "Rendez-vous introuvable.");
+
+    const previous = existing.rows[0] as { appointmentDate: Date; status: AppointmentStatus };
+    await client.query(`UPDATE appointments
+      SET appointment_date = $2, status = 'confirmed', updated_at = now()
+      WHERE id = $1`, [id, appointmentDate]);
+    await client.query(`INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, changes)
+      VALUES ($1, 'appointment.rescheduled', 'appointment', $2, $3::jsonb)`, [actorId, id, JSON.stringify({
+        appointmentDate: { from: previous.appointmentDate.toISOString(), to: appointmentDate },
+        status: { from: previous.status, to: "confirmed" }
+      })]);
+    await client.query("COMMIT");
+    return getAppointment(id);
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 async function getAppointment(id: string) {
   const result = await pool.query(`SELECT ${columns} FROM appointments a JOIN patients p ON p.id = a.patient_id
     JOIN users u ON u.id = a.created_by WHERE a.id = $1`, [id]);
