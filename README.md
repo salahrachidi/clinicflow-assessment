@@ -60,6 +60,18 @@ Never use these credentials outside a local/demo environment.
 
 ## Commands
 
+Run `make help` to see the complete command catalog. The most common workflows are:
+
+```bash
+make setup       # local dependencies, PostgreSQL, migrations, and seed
+make dev         # backend and frontend development servers
+make verify      # types, builds, API tests, browser tests, and Compose validation
+make docker-up   # complete production-style stack at http://localhost:8088
+make docker-down
+```
+
+Every Make target wraps the corresponding npm or Docker Compose command, so the underlying commands remain available directly:
+
 ```bash
 npm run typecheck
 npm run build
